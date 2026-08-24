@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "image-normalize"
+version = "0.1.0"
+description = "Normalize product images for vision-model matching"
+requires-python = ">=3.12"
+dependencies = [
+  "httpx>=0.28,<1",
+  "pillow>=11,<12",
+  "python-dotenv>=1,<2",
+]
+
+[project.optional-dependencies]
+calibrate = ["openai>=1.68,<2"]
+dev = [
+  "pytest>=8,<9",
+  "pytest-asyncio>=0.25,<1",
+]
+
+[project.scripts]
+image-normalize = "image_normalize.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/image_normalize"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
