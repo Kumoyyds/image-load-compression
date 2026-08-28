@@ -1,8 +1,8 @@
 import httpx
 import pytest
 
-from image_normalize import ErrorLayer, NormalizeConfig
-from image_normalize.fetch import FetchError, HttpxFetcher
+from image_load_compression import ErrorLayer, NormalizeConfig
+from image_load_compression.fetch import FetchError, HttpxFetcher
 
 
 @pytest.mark.asyncio
@@ -17,7 +17,7 @@ async def test_server_error_retries_then_succeeds(monkeypatch: pytest.MonkeyPatc
     async def no_wait(_: float) -> None:
         pass
 
-    monkeypatch.setattr("image_normalize.fetch.asyncio.sleep", no_wait)
+    monkeypatch.setattr("image_load_compression.fetch.asyncio.sleep", no_wait)
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         response = await HttpxFetcher(NormalizeConfig(), client).get("https://example.test/image")
 

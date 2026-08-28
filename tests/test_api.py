@@ -1,5 +1,5 @@
-from image_normalize import ImageResult, Status
-from image_normalize import api
+from image_load_compression import ImageResult, Status
+from image_load_compression import api
 
 
 async def fake_batch(urls, config, run_id):

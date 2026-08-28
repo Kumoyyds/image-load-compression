@@ -2,7 +2,7 @@ from io import BytesIO
 
 from PIL import Image
 
-from image_normalize import ErrorLayer, NormalizeConfig, Status, normalize_image
+from image_load_compression import ErrorLayer, NormalizeConfig, Status, normalize_image
 
 
 def image_bytes(

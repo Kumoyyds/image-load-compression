@@ -3,10 +3,10 @@ from io import BytesIO
 import pytest
 from PIL import Image
 
-from image_normalize import NormalizeConfig, Status
-from image_normalize.fetch import FetchError, FetchResponse
-from image_normalize.models import ErrorLayer
-from image_normalize.pipeline import normalize_batch
+from image_load_compression import NormalizeConfig, Status
+from image_load_compression.fetch import FetchError, FetchResponse
+from image_load_compression.models import ErrorLayer
+from image_load_compression.pipeline import normalize_batch
 
 
 class FakeFetcher:

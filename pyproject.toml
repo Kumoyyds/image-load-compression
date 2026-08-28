@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "image-normalize"
+name = "image-load-compression"
 version = "0.1.0"
 description = "Normalize product images for vision-model matching"
 requires-python = ">=3.12"
@@ -11,6 +11,7 @@ dependencies = [
   "httpx>=0.28,<1",
   "pillow>=11,<12",
   "python-dotenv>=1,<2",
+  "pyyaml>=6,<7",
 ]
 
 [project.optional-dependencies]
@@ -21,10 +22,10 @@ dev = [
 ]
 
 [project.scripts]
-image-normalize = "image_normalize.cli:main"
+image-load-compression = "image_load_compression.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/image_normalize"]
+packages = ["src/image_load_compression"]
 
 [tool.pytest.ini_options]
 addopts = "-q"

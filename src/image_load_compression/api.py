@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from datetime import datetime, timezone
 from typing import overload
 
-from .config import NormalizeConfig
+from .config import NormalizeConfig, load_config
 from .models import ImageResult
 from .pipeline import normalize_batch
 
@@ -37,6 +37,6 @@ def run(
     single = isinstance(urls, str)
     items = [urls] if single else list(urls)
     batch_id = run_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    results = asyncio.run(normalize_batch(items, config or NormalizeConfig(), batch_id))
+    results = asyncio.run(normalize_batch(items, config or load_config(), batch_id))
     return results[0] if single else results
 

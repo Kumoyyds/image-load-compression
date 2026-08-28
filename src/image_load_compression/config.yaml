@@ -1,0 +1,24 @@
+# 输出图片：尺寸与大小
+output:
+  max_long_edge: 2048      # 尺寸：长边像素上限，等比缩放，永不放大
+  size_budget_kb: 50     # 大小：单张文件体积预算
+  format: JPEG             # JPEG | WEBP
+  jpeg_subsampling: 0      # 0 = 4:4:4
+
+# 压缩质量阶梯：从 start 每次减 step，降到 floor 为止
+quality:
+  start: 90
+  step: 5
+  floor: 40
+
+# 下载
+fetch:
+  concurrency: 8
+  connect_timeout: 5.0
+  read_timeout: 20.0
+  max_download_mb: 20
+  user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
+  retries:
+    l1: 2
+    l2a: 3
+    l2b: 2
