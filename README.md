@@ -2,7 +2,8 @@
 
 Downloads product images and normalizes them for vision-model matching: one long-edge cap, one size budget, one predictable output format. Images that already satisfy both constraints are passed through byte-for-byte, so nothing is re-encoded for no reason. Built for [competitor_product_search](../competitor_product_search) — scraping yields `image_urls`, this turns them into model-ready bytes.
 
-> **Status**: v1 of [plans/spec/image_normalize_spec.md](plans/spec/image_normalize_spec.md) (D-IMG-01..16). The `suspicious` status and error layer `L4` are reserved in the model but never triggered — spec Q4 deferred the "abnormally small image" threshold.
+> **Status**: image normalization plus image-set comparison evidence. Comparison describes
+> agreements and conflicts for a downstream matcher but deliberately emits no verdict or score.
 
 ## What it does
 
@@ -63,6 +64,9 @@ config = load_config("my.yaml")     # or your own
 
 Resolution order: an explicit path, then `$IMAGE_LOAD_COMPRESSION_CONFIG`, then the packaged file.
 
+The `compare` block configures the vision-model call. Its API key is intentionally absent from
+YAML and must be injected by the caller through `load_compare_config(api_key=...)`.
+
 ## Use from another project
 
 ```bash
@@ -83,6 +87,22 @@ Use `run(urls)` for the synchronous version — it accepts one URL or many and r
 result or a list to match. It raises inside a running event loop, so notebooks and async
 code must `await normalize_batch(...)` instead.
 
+### Compare two image sets
+
+```python
+from image_load_compression import compare_many, load_compare_config
+
+config = load_compare_config(api_key=my_secret)
+results = compare_many([(listing_a_urls, listing_b_urls), ...], config)
+comments = [result.comment for result in results]
+```
+
+Each `CompareResult.comment` is an English evidence report with Set A, Set B, agreements,
+discrepancies, and attributes that images cannot establish. It ignores presentation differences
+such as models, backgrounds, crops, and watermarks. It does not decide whether listings match.
+Async callers use `await compare_batch(...)`; the batch normalizes shared URLs once and limits
+concurrent model requests independently from image-download concurrency.
+
 ## CLI
 
 ```bash
@@ -91,6 +111,7 @@ uv run pytest
 uv run python -m image_load_compression data/input.txt -o out/
 uv run python -m image_load_compression data/input.txt -o out/ --config my.yaml
 uv run python -m image_load_compression data/input.txt -o out/ --max-long-edge 800 --size-budget-kb 80
+uv run python scripts/compare_smoke.py
 ```
 
 `--max-long-edge` and `--size-budget-kb` override the resolved config, which makes A/B runs
@@ -113,6 +134,7 @@ Decodable input formats: GIF, JPEG, PNG, WEBP. Anything else fails at `L3`.
 | Normalized image | JPEG or WEBP bytes | `ImageResult.image_bytes`; CLI writes `out/<run_id>/<sha256(url)[:16]>.jpg` |
 | Per-image metadata | `ImageResult`, `.to_dict()` drops the bytes | CLI writes `out/<run_id>/results.jsonl` |
 | Run summary | counts by status, error layer, passthrough | stdout |
+| Comparison evidence | `CompareResult` with English `comment`, image counts, dropped URLs, and token usage | library; smoke script writes `output/compare/results.jsonl` |
 
 ### Statuses and error layers
 
@@ -129,13 +151,23 @@ Decodable input formats: GIF, JPEG, PNG, WEBP. Anything else fails at `L3`.
 | `L3` | undecodable, unsupported format, or over the download cap |
 | `L4` | reserved: decodes fine but semantically useless (tracking pixel, placeholder) |
 
+Comparison statuses are `success`, `insufficient_images` (one or both sets have no usable
+image), and `failed` (model or transport failure). Every status includes a readable comment.
+
 ## Script map
 
 ```
-config.yaml --> [config.py] --> NormalizeConfig
+config.yaml --> [config.py] --> NormalizeConfig / CompareConfig
                                       |
-                                      v
-[cli.py] --> [api.py] --> [pipeline.py] --> [fetch.py] --> [process.py] --> [models.py]
+             +------------------------+-------------------------+
+             v                                                  v
+[cli.py] --> [api.py] --> [pipeline.py] --> [fetch.py]     [compare_api.py]
+                                      |                         |
+                                      v                         v
+                                 [process.py]          [compare_pipeline.py]
+                                                                |
+                                                                v
+                                              [prompt + compare_client.py]
 ```
 
 `cli.py` handles argument parsing and writes the run directory. `api.py` is the sync wrapper.
@@ -148,6 +180,7 @@ is pixels only, `models.py` is the result shape.
 |---|---|---|
 | [src/image_load_compression/config.yaml](src/image_load_compression/config.yaml) | output size and dimensions, quality ladder, fetch tuning | the target vision model, its pixel budget, or the size budget changes |
 | [data/input.txt](data/input.txt) | sample URLs for the CLI smoke run | the sample sites change |
+| [data/input_compare.txt](data/input_compare.txt) | paired sample image sets | comparison sample listings change |
 
 ## Calibration
 
@@ -155,4 +188,10 @@ Checking a candidate long edge and quality against a real vision model needs `QW
 
 ```bash
 uv run --extra calibrate python scripts/calibrate_qwen.py path-or-image-url
+```
+
+The end-to-end comparison smoke test uses `QWEN_KEY` and optional `QWEN_BASE_URL` from `.env`:
+
+```bash
+uv run python scripts/compare_smoke.py
 ```

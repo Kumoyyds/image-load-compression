@@ -1,7 +1,7 @@
 # 输出图片：尺寸与大小
 output:
   max_long_edge: 2048      # 尺寸：长边像素上限，等比缩放，永不放大
-  size_budget_kb: 50     # 大小：单张文件体积预算
+  size_budget_kb: 90     # 大小：单张文件体积预算
   format: JPEG             # JPEG | WEBP
   jpeg_subsampling: 0      # 0 = 4:4:4
 
@@ -22,3 +22,15 @@ fetch:
     l1: 2
     l2a: 3
     l2b: 2
+
+# 图片集合对比：调用方必须单独注入 api_key
+compare:
+  model: qwen3.7-flash
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  max_images_per_set: 6
+  concurrency: 8
+  request_timeout: 90.0
+  max_retries: 2
+  max_pixels: 1048576
+  temperature: 0.0
+  max_output_tokens: 700

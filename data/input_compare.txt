@@ -1,0 +1,17 @@
+# example 1
+## website 1 
+https://images4.joy-sourcing.com/product/s1248x1248_jfsintlpro-000-product/t1/4294967296/6029312/6109817357563/521945/6a3a5f8bE8da547f7/42b10752b5083d5e.png.webp
+https://images4.joy-sourcing.com/product/s1248x1248_jfsintlpro-000-product/t1/4294967296/3276800/620737024539/3254067/69bba012E7dbd0361/42b10752b5083d5e.png.webp
+https://images4.joy-sourcing.com/product/s1248x1248_jfsintlpro-000-product/t1/4294967296/3604480/62073624569/1206196/69bba00eEf336c6f8/42b10752b5083d5e.png.webp
+
+## website 2 
+https://m.media-amazon.com/images/I/71tnlyL4EfL._AC_SX679_PIbundle-12,TopRight,0,0_SH20_.jpg
+https://m.media-amazon.com/images/I/41AWVA+VC-L._AC_SX679_.jpg
+
+# example 2 
+## website 1
+https://digitalcontent.api.tesco.com/v2/media/ghs/4254f125-1cad-4ec6-81d8-d8ebac71dbb2/1e144a14-2413-4be7-88bc-36312644faa3_501672072.jpeg?h=960&w=960
+https://digitalcontent.api.tesco.com/v2/media/ghs/2ccb301f-6acd-4ce4-99f5-661fcd0cbfc7/564a7084-e887-4932-a98a-1d0378b01bc5_449685945.jpeg?h=960&w=960
+
+## website 2 
+https://images4.joy-sourcing.com/product/s1248x1248_jfsintlpro-000-product/t1/4294967296/2555904/6207370373770/263681/6a3cc9ccE7962b052/42b10752b5083d5e.jpg!q70.webp

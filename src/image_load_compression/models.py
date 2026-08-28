@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 from typing import Any
 
@@ -17,6 +17,12 @@ class ErrorLayer(StrEnum):
     L2C = "L2c"
     L3 = "L3"
     L4 = "L4"
+
+
+class CompareStatus(StrEnum):
+    SUCCESS = "success"
+    INSUFFICIENT_IMAGES = "insufficient_images"
+    FAILED = "failed"
 
 
 @dataclass(slots=True)
@@ -41,3 +47,18 @@ class ImageResult:
         data.pop("image_bytes")
         return data
 
+
+@dataclass(slots=True)
+class CompareResult:
+    comment: str
+    status: CompareStatus
+    set_a_images_used: int = 0
+    set_b_images_used: int = 0
+    dropped_urls: list[str] = field(default_factory=list)
+    model: str | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    error_detail: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)

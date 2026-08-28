@@ -51,26 +51,67 @@ class NormalizeConfig:
         object.__setattr__(self, "output_format", output_format)
 
 
+@dataclass(frozen=True, slots=True)
+class CompareConfig:
+    api_key: str
+    base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model: str = "qwen3-vl-flash"
+    max_images_per_set: int = 6
+    concurrency: int = 4
+    request_timeout: float = 90.0
+    max_retries: int = 2
+    max_pixels: int = 1024 * 1024
+    temperature: float = 0.0
+    max_output_tokens: int = 700
+
+    def __post_init__(self) -> None:
+        for name in ("api_key", "base_url", "model"):
+            if not getattr(self, name).strip():
+                raise ValueError(f"{name} must not be empty")
+        for name in (
+            "max_images_per_set",
+            "concurrency",
+            "request_timeout",
+            "max_pixels",
+            "max_output_tokens",
+        ):
+            if getattr(self, name) <= 0:
+                raise ValueError(f"{name} must be positive")
+        if self.max_retries < 0:
+            raise ValueError("max_retries cannot be negative")
+        if self.temperature < 0:
+            raise ValueError("temperature cannot be negative")
+
+
 CONFIG_ENV_VAR = "IMAGE_LOAD_COMPRESSION_CONFIG"
 
-# YAML dotted path -> (NormalizeConfig field, factor applied to the YAML value).
+# YAML dotted path -> (target config, dataclass field, factor applied to the YAML value).
 # Every unit conversion lives here so config.yaml can stay human-friendly.
-_FIELD_MAP: dict[str, tuple[str, int]] = {
-    "output.max_long_edge": ("max_long_edge", 1),
-    "output.size_budget_kb": ("size_budget_bytes", 1024),
-    "output.format": ("output_format", 1),
-    "output.jpeg_subsampling": ("jpeg_subsampling", 1),
-    "quality.start": ("quality_start", 1),
-    "quality.step": ("quality_step", 1),
-    "quality.floor": ("quality_floor", 1),
-    "fetch.concurrency": ("concurrency", 1),
-    "fetch.connect_timeout": ("connect_timeout", 1),
-    "fetch.read_timeout": ("read_timeout", 1),
-    "fetch.max_download_mb": ("max_download_bytes", 1024 * 1024),
-    "fetch.user_agent": ("user_agent", 1),
-    "fetch.retries.l1": ("l1_retries", 1),
-    "fetch.retries.l2a": ("l2a_retries", 1),
-    "fetch.retries.l2b": ("l2b_retries", 1),
+_FIELD_MAP: dict[str, tuple[str, str, int]] = {
+    "output.max_long_edge": ("normalize", "max_long_edge", 1),
+    "output.size_budget_kb": ("normalize", "size_budget_bytes", 1024),
+    "output.format": ("normalize", "output_format", 1),
+    "output.jpeg_subsampling": ("normalize", "jpeg_subsampling", 1),
+    "quality.start": ("normalize", "quality_start", 1),
+    "quality.step": ("normalize", "quality_step", 1),
+    "quality.floor": ("normalize", "quality_floor", 1),
+    "fetch.concurrency": ("normalize", "concurrency", 1),
+    "fetch.connect_timeout": ("normalize", "connect_timeout", 1),
+    "fetch.read_timeout": ("normalize", "read_timeout", 1),
+    "fetch.max_download_mb": ("normalize", "max_download_bytes", 1024 * 1024),
+    "fetch.user_agent": ("normalize", "user_agent", 1),
+    "fetch.retries.l1": ("normalize", "l1_retries", 1),
+    "fetch.retries.l2a": ("normalize", "l2a_retries", 1),
+    "fetch.retries.l2b": ("normalize", "l2b_retries", 1),
+    "compare.base_url": ("compare", "base_url", 1),
+    "compare.model": ("compare", "model", 1),
+    "compare.max_images_per_set": ("compare", "max_images_per_set", 1),
+    "compare.concurrency": ("compare", "concurrency", 1),
+    "compare.request_timeout": ("compare", "request_timeout", 1),
+    "compare.max_retries": ("compare", "max_retries", 1),
+    "compare.max_pixels": ("compare", "max_pixels", 1),
+    "compare.temperature": ("compare", "temperature", 1),
+    "compare.max_output_tokens": ("compare", "max_output_tokens", 1),
 }
 
 
@@ -85,14 +126,7 @@ def _flatten(node: Mapping[str, Any], prefix: str = "") -> dict[str, Any]:
     return flat
 
 
-def load_config(path: str | os.PathLike[str] | None = None) -> NormalizeConfig:
-    """Build a NormalizeConfig from a YAML file.
-
-    Precedence: an explicit ``path``, then ``$IMAGE_LOAD_COMPRESSION_CONFIG``,
-    then the config.yaml shipped inside the package. Absent keys fall back to
-    the dataclass defaults, so a caller's file may override only what it cares
-    about; unknown keys raise, so a typo never silently keeps the old value.
-    """
+def _read_flat(path: str | os.PathLike[str] | None = None) -> dict[str, Any]:
     if path is None:
         path = os.environ.get(CONFIG_ENV_VAR) or None
     source = Path(path) if path is not None else resources.files(__package__) / "config.yaml"
@@ -102,12 +136,33 @@ def load_config(path: str | os.PathLike[str] | None = None) -> NormalizeConfig:
         raise ValueError(f"{source}: top level must be a mapping")
 
     flat = _flatten(raw)
+    if "compare.api_key" in flat:
+        raise ValueError(
+            f"{source}: compare.api_key is not allowed in YAML; pass api_key to "
+            "load_compare_config()"
+        )
     unknown = sorted(set(flat) - set(_FIELD_MAP))
     if unknown:
         raise ValueError(f"{source}: unknown config keys: {', '.join(unknown)}")
+    return flat
 
+
+def _values_for(flat: Mapping[str, Any], target: str) -> dict[str, Any]:
     values: dict[str, Any] = {}
     for dotted, value in flat.items():
-        field, factor = _FIELD_MAP[dotted]
-        values[field] = value * factor if factor != 1 else value
-    return NormalizeConfig(**values)
+        mapped_target, field, factor = _FIELD_MAP[dotted]
+        if mapped_target == target:
+            values[field] = value * factor if factor != 1 else value
+    return values
+
+
+def load_config(path: str | os.PathLike[str] | None = None) -> NormalizeConfig:
+    """Build a NormalizeConfig from YAML; unknown keys always raise."""
+    return NormalizeConfig(**_values_for(_read_flat(path), "normalize"))
+
+
+def load_compare_config(
+    path: str | os.PathLike[str] | None = None, *, api_key: str
+) -> CompareConfig:
+    """Build a CompareConfig from YAML, with the API key supplied by the caller."""
+    return CompareConfig(api_key=api_key, **_values_for(_read_flat(path), "compare"))
